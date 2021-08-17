@@ -1,8 +1,8 @@
-;;; aio-tests.el --- async unit test suite for aio -*- lexical-binding: t; -*-
+;;; aio-iter2-test.el --- async unit test suite for aio-iter2 -*- lexical-binding: t; -*-
 
 ;;; Commentary:
 
-;;  $ emacs -batch -Q -l aio-test.elc -f ert-run-tests-batch
+;;  $ emacs -batch -Q -l aio-iter2-test.elc -f ert-run-tests-batch
 
 ;; Because the tests run as async functions, the test suite cannot be
 ;; run in batch mode. The results will be written into a buffer and
@@ -10,27 +10,27 @@
 
 ;;; Code:
 
-(require 'aio)
+(require 'aio-iter2)
 (require 'cl-lib)
 (require 'ert)
 
-(defmacro aio-with-test (timeout &rest body)
+(defmacro aio-iter2-with-test (timeout &rest body)
   "Run body asynchronously but block synchronously until it completes.
 
 If TIMEOUT seconds passes without completion, signal an
 aio-timeout to cause the test to fail."
   (declare (indent 1))
-  `(let* ((promises (list (aio-with-async ,@body)
+  `(let* ((promises (list (aio-iter2-with-async ,@body)
                           (aio-timeout ,timeout)))
           (select (aio-make-select promises)))
      (aio-wait-for
-      (aio-with-async
+      (aio-iter2-with-async
         (aio-await (aio-await (aio-select select)))))))
 
 ;; Tests:
 
 (ert-deftest sleep ()
-  (aio-with-test 3
+  (aio-iter2-with-test 3
     (let ((start (float-time)))
       (dotimes (i 3)
         (should (eql i
@@ -39,13 +39,13 @@ aio-timeout to cause the test to fail."
                  1.4)))))
 
 (ert-deftest repeat ()
-  (aio-with-test 3
+  (aio-iter2-with-test 3
     (let ((sub (aio-lambda (result) (aio-await (aio-sleep .1 result)))))
       (should (eq :a (aio-await (funcall sub :a))))
       (should (eq :b (aio-await (funcall sub :b)))))))
 
 (ert-deftest timeout ()
-  (aio-with-test 4
+  (aio-iter2-with-test 4
     (let ((sleep (aio-sleep 1.0 t))
           (timeout (aio-timeout 0.5))
           (select (aio-make-select)))
@@ -63,7 +63,7 @@ aio-timeout to cause the test to fail."
         (should (equal '(:success . t)
                        (aio-await (aio-catch winner))))))))
 
-(defun aio-test--shuffle (values)
+(defun aio-iter2-test--shuffle (values)
   "Return a shuffled copy of VALUES."
   (let ((v (vconcat values)))
     (cl-loop for i from (1- (length v)) downto 1
@@ -72,10 +72,10 @@ aio-timeout to cause the test to fail."
              finally return (append v nil))))
 
 (ert-deftest sleep-sort ()
-  (aio-with-test 8
+  (aio-iter2-with-test 8
     (let* ((values (cl-loop for i from 5 to 60
                             collect (/ i 20.0) into values
-                            finally return (aio-test--shuffle values)))
+                            finally return (aio-iter2-test--shuffle values)))
            (count (length values))
            (select (aio-make-select))
            (promises (dolist (value values)
@@ -88,7 +88,7 @@ aio-timeout to cause the test to fail."
             (setf last result)))))))
 
 (ert-deftest process-sentinel ()
-  (aio-with-test 10
+  (aio-iter2-with-test 10
     (let ((process (start-process-shell-command "test" nil "exit 0"))
           (sentinel (aio-make-callback)))
       (setf (process-sentinel process) (car sentinel))
@@ -96,7 +96,7 @@ aio-timeout to cause the test to fail."
                      (nth 1 (aio-chain (cdr sentinel))))))))
 
 (ert-deftest process-filter ()
-  (aio-with-test 10
+  (aio-iter2-with-test 10
     (let* ((command
             (if (eq system-type 'windows-nt)
                 (mapconcat #'identity
@@ -115,7 +115,7 @@ aio-timeout to cause the test to fail."
                      (nth 1 (aio-chain (cdr filter))))))))
 
 (ert-deftest sem ()
-  (aio-with-test 5
+  (aio-iter2-with-test 5
     (let ((n 64)
           (sem (aio-sem 0))
           (promises ())
@@ -123,7 +123,7 @@ aio-timeout to cause the test to fail."
       (dotimes (i n)
         ;; Queue up threads on the semaphore
         (push
-         (aio-with-async
+         (aio-iter2-with-async
            (aio-await (aio-sem-wait sem))
            (push i output))
          promises))
