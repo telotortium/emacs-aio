@@ -1,4 +1,4 @@
-;;; aio-iter2.el --- aio, but using iter2 -*- lexical-binding: t; -*-
+;;; aio-iter2.el --- Reimplement aio using iter2 -*- lexical-binding: t; -*-
 
 ;; This is free and unencumbered software released into the public domain.
 
@@ -23,13 +23,13 @@
 (require 'rx)
 
 (defmacro aio-iter2-lambda (arglist &rest body)
-  "Like `lambda', but defines an async function.
+  "Like `lambda', but define an async function.
 
-The body of this function may use `aio-await' to wait on
-promises. When an async function is called, it immediately
-returns a promise that will resolve to the function's return
-value, or any uncaught error signal.
-  
+ARGLIST and BODY are as in ‘lambda’.  The body of this function may use
+`aio-await' to wait on promises.  When an async function is called, it
+immediately returns a promise that will resolve to the function's return value,
+or any uncaught error signal.
+
 Replacement of `aio-lambda` that uses `iter2-lambda` instead
 of `iter-lambda`."
   (declare (indent defun)
@@ -51,7 +51,8 @@ of `iter-lambda`."
            (aio--step iter ,promise nil))))))
 
 (defmacro aio-iter2-defun (name arglist &rest body)
-  "Like `aio-iter2-lambda' but gives the function a name like `defun'."
+  "Like `aio-iter2-lambda' but gives the function a name like `defun'.
+NAME, ARGLIST, and BODY are as in ‘defun’."
   (declare (indent defun)
            (doc-string 3)
            (debug (&define name lambda-list &rest sexp)))
@@ -63,7 +64,7 @@ of `iter-lambda`."
   "Evaluate BODY asynchronously as if it was inside `aio-iter2-lambda'.
 
 Since BODY is evalued inside an asynchronous lambda, `aio-await'
-is available here. This macro evaluates to a promise for BODY's
+is available here.  This macro evaluates to a promise for BODY's
 eventual result.
 
 Beware: Dynamic bindings that are lexically outside
