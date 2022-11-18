@@ -58,7 +58,9 @@ NAME, ARGLIST, and BODY are as in ‘defun’."
            (debug (&define name lambda-list &rest sexp)))
   `(progn
      (defalias ',name (aio-iter2-lambda ,arglist ,@body))
-     (function-put ',name 'aio-defun-p t)))
+     (function-put ',name 'aio-defun-p t)
+     ;; Evaluates to the name of the function, like ‘defun’.
+     ',name))
 
 (defmacro aio-iter2-with-async (&rest body)
   "Evaluate BODY asynchronously as if it was inside `aio-iter2-lambda'.
